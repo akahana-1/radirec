@@ -1,0 +1,14 @@
+[
+	{
+		"name" : "agqr",
+		"url" : "rtmp://fms-base1.mitene.ad.jp/agqr/aandg22",
+		"cmd" : "/usr/bin/rtmpdump -r {url} --live -B {length}",
+		"fmt" : "flv"
+	},
+	{
+		"name" : "chofu",
+		"url" : "mmsh://hdv3.nkansai.tv/chofu?MSWMExt=.asf",
+		"cmd" : "/usr/bin/ffmpeg -i {url} -t {length} -f {fmt} pipe:",
+		"fmt" : "mp3"
+	}
+]

@@ -1,0 +1,15 @@
+[
+	{ "title" : "yonayona_mon", "length" : 60, "start" : "0:00", "wday" : "火", "channel" : "agqr" },
+	{ "title" : "yonayona_tue", "length" : 60, "start" : "0:00", "wday" : "水", "channel" : "agqr"},
+	{ "title" : "yonayona_wed", "length" : 60, "start" : "0:00", "wday" : "木", "channel" : "agqr"},
+	{ "title" : "yonayona_thu", "length" : 60, "start" : "0:00", "wday" : "金", "channel" : "agqr"},
+	{ "title" : "ao", "length" : 30, "start" : "20:30", "wday" : "日", "channel" : "agqr"},
+	{ "title" : "fivestars_mon", "wday" : "月", "start" : "20:00", "length" : 60, "channel" : "agqr"},
+	{ "title" : "fivestars_tue", "wday" : "火", "start" : "20:00", "length" : 60, "channel" : "agqr"},
+	{ "title" : "fivestars_wed", "wday" : "水", "start" : "20:00", "length" : 60, "channel" : "agqr"},
+	{ "title" : "fivestars_thu", "wday" : "木", "start" : "20:00", "length" : 60, "channel" : "agqr"},
+	{ "title" : "pitin", "wday" : "土", "start": "18:30", "length": 30, "channel" : "agqr" },
+	{ "title" : "sachannelika", "wday": "金", "start" : "02:00", "length" : 30, "channel" : "agqr" },
+	{ "title" : "ifukube", "wday" : "火", "start" : "03:00", "length" : 30, "channel" : "agqr" },
+	{ "title" : "luminous", "wday" : "水", "start" : "20:00", "length" : 30, "channel" : "chofu" }
+]

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
 
 from utils import Controller
 
@@ -20,7 +21,7 @@ def main():
     del(args["debug"])
 
     ctrl = Controller(**args)
-    ctrl.check(debug)
+    ctrl.check()
 
 if __name__ == '__main__':
     main()

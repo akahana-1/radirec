@@ -5,8 +5,8 @@ scheduleを確認して合致するものがあれば録画したりするcontro
 import os.path
 import json
 import threading
-import logging
 from datetime import datetime, timedelta
+from logging import getLogger
 
 from .recorder import Recorder
 
@@ -15,11 +15,10 @@ SCHEDULE = "schedule.json"
 class Controller(object):
     wday = { k : i for i, k in enumerate("月火水木金土日") }
 
-    def __init__(self, config_dir = ".", **kwargs):
-        self.schedule_file = os.path.join(config_dir, SCHEDULE)
-        with open(self.schedule_file, "r") as f:
+    def __init__(self, recorder, schedule_file):
+        with open(schedule_file, "r") as f:
             self.schedule = json.load(f)
-        self.recorder = Recorder(config_dir, **kwargs)
+        self.recorder = recorder
 
     def check(self, ):
         now = datetime.now()
@@ -36,10 +35,3 @@ class Controller(object):
         for _ in targets:
             _.start()
         return
-
-    def debug(self, ):
-        now = detetime(2017, 1, 11, 19, 59, 30)
-
-if __name__ == '__main__':
-    ctrl = Controller()
-    ctrl.debug()

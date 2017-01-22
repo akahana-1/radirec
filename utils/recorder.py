@@ -12,9 +12,8 @@ CHANNEL = "channels.json"
 
 class Recorder():
 
-    def __init__(self, config_dir, record_dir):
+    def __init__(self, channel_file, record_dir):
         self.record_dir = record_dir
-        channel_file = os.path.join(config_dir, CHANNEL)
         with open(channel_file, "r") as f:
             self.channels = json.load(f)
         if not os.path.isdir(self.record_dir):

@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os.path
 import argparse
-import logging
+from logging import getLogger
 
-from utils import Controller
+from utils import Controller, Recorder
+
+SCHEDULE = "schedule.json"
+CHANNEL = "channels.json"
 
 def parse():
     parser = argparse.ArgumentParser()
@@ -20,8 +24,16 @@ def main():
     debug = args["debug"]
     del(args["debug"])
 
-    ctrl = Controller(**args)
-    ctrl.check()
+    recorder = Recorder(
+            os.path.join(args["config_dir"], CHANNEL),
+            args["record_dir"]
+            )
+    controller = Controller(
+            recorder,
+            os.path.join(args["config_dir"], SCHEDULE)
+            )
+
+    controller.check()
 
 if __name__ == '__main__':
     main()

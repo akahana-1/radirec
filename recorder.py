@@ -1,7 +1,6 @@
 import subprocess
 import shlex
 import time
-from sys import stdout
 
 
 def record_agqr(p):
@@ -11,19 +10,11 @@ def record_agqr(p):
         "-r": url,
         "--live": None,
         "-B": p["length"],
+        "-o": "hoge.flv"
         }
     cmds = [cmd, ] + [_ for c in cmdopt.items() for _ in c if _]
-    p = subprocess.Popen(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = p.communicate()
-#    try:
-#        while True:
-#            time.sleep(1)
-#            if p.poll() is not None:
-#                print(p.communicate())
-#                break
-#    except:
-#        p.terminate()
+    p = subprocess.Popen(cmds, stderr=subprocess.DEVNULL)
 
 if __name__ == '__main__':
-    record_agqr({"length": "10"})
+    record_agqr({"length": "100"})
     print("complete!")

@@ -1,0 +1,17 @@
+{
+	"record_dir" : "./recorded",
+	"title_format" : "${name}-${date}",
+
+	"channels" : [
+		"agqr" : {
+			"url" : "rtmp://fms-base1.mitene.ad.jp/agqr/aands22",
+			"cmd" : ["/usr/bin/rtmpdump", "-r ${url} --live -B ${length}"],
+			"ext" : "flv"
+		},
+		"chofu" : {
+			"url" : "mmsh://hdv3.nkansai.tv/chofu?MSWMExt=.asf",
+			"cmd" : ["/usr/bin/ffmpeg", "-i ${url} -t ${length} -f ${ext} :pipe"],
+			"ext" : "mp3"
+		}
+	]
+}

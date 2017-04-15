@@ -3,38 +3,46 @@
 
 import os.path
 import argparse
+import shlex
 import asyncio
 import json
+import re
 from string import Template
 from datetime import datetime, timedelta
 # from logging import getLogger
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# from utils import Controller, Recorder
-
 SCHEDULE = "schedule.json"
 CONFIG = "config.json"
 
 
-def check_requirement(config):
-    """
-    tile_format, record_dir, channelsがそれぞれ定義されているか確認
-    定義されていなければ適当に例外飛ばす
-    """
+def rsubstitute(template, *params):
+    temp = Template(template)
+    substitute_pattern = "\\" + Template.delimiter + r"\{?" + Template.idpattern + r"\}?"
+    ptr = re.compile(substitute_pattern)
+    for param in params:
+        temp = temp.safe_substitute(param)
+        if ptr.findall(temp):
+            temp = Template(temp)
+        else:
+            return temp
+
+
+def is_valid_config(config):
     pass
 
+def is_valid_schedule(schedule):
+    pass
 
-def load_config(config_file):
-    with open(config_file, "r") as f:
-        config = json.load(f)
-    return config
+def load_json(json_file):
+    with open(json_file, "r", encoding="UTF-8") as f:
+        data = json.load(f)
+    return data
 
 
 def assemble_record_command(config, program):
     ch = config["channels"].get(program["channel"], None)
-    params = program
-    params["length"] *= 60
 
     # 録画すべきチャンネルの設定が存在していないときは何もしない
     if ch is None:
@@ -51,27 +59,13 @@ def assemble_record_command(config, program):
         """
         return
 
-    params.update(ch)
-
-    opt = Template(opt).safe_substitute(params)
+    opt = rsubstitute(opt, ch, { "length":program["length"] * 60 })
     return " ".join((cmd, opt))
 
 
 def assemble_title(config, program, date):
-    title = Template(config.get["title_format"])
-    title.safe_substitute(program)
-    title.safe_substitute(date=date.strftime("%Y%m%d"))
-    return title
-
-
-def record(config, program, now):
-    cmd = assemble_record_command(config, program)
-    if not cmd:
-        """
-        なんかエラー出力
-        """
-    title = assemble_title(config, program, now)
-    pass
+    title_format = config["title_format"]
+    return rsubstitute(title_format, program, {"date" : date.strftime("%Y%m%d")})
 
 
 def is_matched_program(programs, interval=60):
@@ -96,6 +90,30 @@ def is_matched_program(programs, interval=60):
         if is_appropriate_time and is_appropriate_wday:
             yield (start_time, program)
 
+def generate_task(config, programs):
+    fps = []
+
+    # このタイミングで録画するタスクの生成
+    for (now, p) in is_matched_program(programs):
+        cmd = assemble_record_command(config, p)
+        fname = assemble_title(config, p, now) + ".{}".format(config["channels"][p["channel"]]["ext"])
+        print(cmd, fname)
+        if cmd and fname:
+            fps.append(open(fname, 'wb'))
+            asyncio.create_subprocess_exec(shlex.split(cmd), stdout=fps[-1])
+
+    # 録画ファイルへのファイルポインタをすべて削除
+    for fp in fps:
+        fp.close()
+
+def generate_debug_task(n=20):
+    """
+    ファイルポインタを持ったままで並列化した時にブロッキングされるか確かめる
+    """
+    cmd = ""
+    for i in range(n):
+        pass
+
 
 def parse():
     parser = argparse.ArgumentParser()
@@ -107,18 +125,18 @@ def parse():
 
 def main():
     args = parse()
-    config = load_config(args["config_file"])
-    with open(args["schedule_file"], "r") as f:
-        programs = json.load(f)
-    for a in is_matched_program(programs):
-        print(a)
-    # scheduler = AsyncIOScheduler()
-    # scheduler.start()
+    config = load_json(args["config_file"])
+    programs = load_json(args["schedule_file"])
+    generate_task(config, programs)
+    scheduler = AsyncIOScheduler()
+    scheduler.start()
 
-    # try:
-    #     asyncio.get_event_loop().run_forever()
-    # except:
-    #     pass
+    scheduler.add_job(generate_task, 'interval', args=(config, programs), seconds=10)
+
+    try:
+        asyncio.get_event_loop().run_forever()
+    except:
+        pass
 
 
 if __name__ == '__main__':

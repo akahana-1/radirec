@@ -1,6 +1,6 @@
 {
 	"record_dir" : "./recorded",
-	"title_format" : "${name}-${date}",
+	"title_format" : "${title}_${date}",
 
 	"channels" : {
 		"agqr" : {

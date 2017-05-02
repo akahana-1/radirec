@@ -7,9 +7,11 @@ import shlex
 import asyncio
 import json
 import re
+import subprocess
+import time
+import threading
 from string import Template
 from datetime import datetime, timedelta
-# from logging import getLogger
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -32,8 +34,10 @@ def rsubstitute(template, *params):
 def is_valid_config(config):
     pass
 
+
 def is_valid_schedule(schedule):
     pass
+
 
 def load_json(json_file):
     with open(json_file, "r", encoding="UTF-8") as f:
@@ -41,8 +45,9 @@ def load_json(json_file):
     return data
 
 
-def assemble_record_command(config, program):
+def assemble_record_command(config, program, date):
     ch = config["channels"].get(program["channel"], None)
+    fname = assemble_filename(config, program, date)
 
     # 録画すべきチャンネルの設定が存在していないときは何もしない
     if ch is None:
@@ -59,18 +64,24 @@ def assemble_record_command(config, program):
         """
         return
 
-    opt = rsubstitute(opt, ch, { "length":program["length"] * 60 })
+    opt = rsubstitute(opt, ch, {
+        "length": program["length"] * 60,
+        "file": fname
+        })
+    print(opt)
     return " ".join((cmd, opt))
 
 
-def assemble_title(config, program, date):
-    title_format = config["title_format"]
-    return rsubstitute(title_format, program, {"date" : date.strftime("%Y%m%d")})
+def assemble_filename(config, program, date):
+    title_ptr = config["title_format"]
+    ext = config["channels"][program["channel"]]["ext"]
+    title = rsubstitute(title_ptr, program, {"date": date.strftime("%Y%m%d")})
+    return title + "." + ext
 
 
 def is_matched_program(programs, interval=60):
     now = datetime.now()
-    now = datetime(now.year, 4, 1, 18, 29, 30)
+#    now = datetime(now.year, 5, 2, 23, 59, 30)
     wday = now.weekday()
 
     for program in programs:
@@ -90,29 +101,58 @@ def is_matched_program(programs, interval=60):
         if is_appropriate_time and is_appropriate_wday:
             yield (start_time, program)
 
+
 def generate_task(config, programs):
     fps = []
+    threads = []
 
     # このタイミングで録画するタスクの生成
-    for (now, p) in is_matched_program(programs):
+    for (st, p) in is_matched_program(programs):
         cmd = assemble_record_command(config, p)
-        fname = assemble_title(config, p, now) + ".{}".format(config["channels"][p["channel"]]["ext"])
-        print(cmd, fname)
-        if cmd and fname:
-            fps.append(open(fname, 'wb'))
-            asyncio.create_subprocess_exec(shlex.split(cmd), stdout=fps[-1])
+        # fname = assemble_filename(config, p, st)
+        # print(cmd, fname)
+        if cmd:
+            threads.append(threading.Thread(subprocess.Popen, shlex.split(cmd)))
+
+    for _ in threads:
+        _.start()
+
+    while any(_.is_alive() for _ in threads):
+        pass
 
     # 録画ファイルへのファイルポインタをすべて削除
     for fp in fps:
         fp.close()
 
+
 def generate_debug_task(n=20):
     """
     ファイルポインタを持ったままで並列化した時にブロッキングされるか確かめる
+    => そんなことはない?
     """
-    cmd = ""
+    cmd = "/usr/bin/rtmpdump -r rtmp://fms-base1.mitene.ad.jp/agqr/aandg22 -B 10 --live"
+    fps = []
+    ths = []
     for i in range(n):
+        t = 10
+        fp = open("{}.flv".format(i), "wb")
+        ths.append(
+                threading.Thread(
+                    target=delay_execute,
+                    args=(t, cmd),
+                    kwargs={"stderr": subprocess.DEVNULL, "stdout": fp}
+                )
+            )
+        fps.append(fp)
+
+    for _ in ths:
+        _.start()
+
+    while any(_.is_alive() for _ in ths):
         pass
+
+    for _ in fps:
+        _.close()
 
 
 def parse():
@@ -123,6 +163,11 @@ def parse():
     return vars(parser.parse_args())
 
 
+def delay_execute(seconds, cmd, *args, **kwargs):
+    time.sleep(seconds)
+    subprocess.Popen(shlex.split(cmd), *args, **kwargs)
+
+
 def main():
     args = parse()
     config = load_json(args["config_file"])
@@ -130,8 +175,16 @@ def main():
     generate_task(config, programs)
     scheduler = AsyncIOScheduler()
     scheduler.start()
-
-    scheduler.add_job(generate_task, 'interval', args=(config, programs), seconds=10)
+    cronopt = {
+            'year': '*',
+            'month': '*',
+            'day': '*',
+            'week': '*',
+            'hour': '*',
+            'minute': '29/59',
+            'second': '30'
+            }
+    scheduler.add_job(generate_task, 'cron', args=(config, programs), kwargs=cronopt)
 
     try:
         asyncio.get_event_loop().run_forever()
@@ -140,4 +193,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    scheduler = AsyncIOScheduler()
+    scheduler.start()
+    scheduler.add_job(generate_debug_task, 'interval', args=(2,), seconds=10)
+
+    try:
+        asyncio.get_event_loop().run_forever()
+    except:
+        pass
